@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrainIQ — KI-Trainingscoach</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #F5F5F7;
+      --surface: rgba(255,255,255,0.72);
+      --border:  rgba(0,0,0,0.08);
+      --text:    #1d1d1f;
+      --dim:     #6e6e73;
+      --blue:    #2563EB;
+      --blue-bg: rgba(37,99,235,0.06);
+      --muted:   #b0b0b8;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      background-image: radial-gradient(circle, rgba(180,180,200,0.45) 1px, transparent 1px);
+      background-size: 28px 28px;
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    /* ── Ambient blobs ── */
+    .bg-blob {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-blob-1 {
+      width: 680px; height: 680px;
+      background: rgba(37,99,235,0.07);
+      filter: blur(140px);
+      top: -160px; right: -140px;
+    }
+    .bg-blob-2 {
+      width: 560px; height: 560px;
+      background: rgba(99,102,241,0.05);
+      filter: blur(120px);
+      bottom: 10%; left: -160px;
+    }
+
+    section, nav, footer { position: relative; z-index: 1; }
+
+    .pixel { font-family: 'VT323', monospace; }
+    .mono  { font-family: 'Share Tech Mono', monospace; }
+    .lbl   {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+
+    /* ── NAV — Apple Glass ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 99;
+      height: 52px;
+      background: rgba(245,245,247,0.72);
+      backdrop-filter: saturate(180%) blur(24px);
+      -webkit-backdrop-filter: saturate(180%) blur(24px);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      display: flex; align-items: center;
+    }
+    .nav-wrap {
+      width: 100%; max-width: 1200px; margin: 0 auto;
+      padding: 0 32px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: 'VT323', monospace;
+      font-size: 22px; letter-spacing: .08em;
+      color: var(--blue); text-decoration: none;
+    }
+    .nav-center { display: flex; gap: 32px; }
+    .nav-center a {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--dim); text-decoration: none;
+      transition: color .15s;
+    }
+    .nav-center a:hover { color: var(--text); }
+    .nav-right {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; color: var(--dim);
+    }
+
+    /* ── SECTIONS ── */
+    section { min-height: 100vh; }
+
+    /* ── HERO ── */
+    .hero {
+      padding-top: 52px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-left {
+      border-right: 1px solid var(--border);
+      padding: 64px 52px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .hero-eyebrow { margin-bottom: 32px; }
+    .hero-title {
+      font-family: 'VT323', monospace;
+      font-size: clamp(96px, 14vw, 172px);
+      color: var(--text);
+      line-height: .88;
+    }
+    .hero-title span { color: var(--blue); }
+    .hero-bottom { margin-top: auto; padding-top: 48px; }
+    .hero-desc {
+      font-size: 14px; color: var(--dim);
+      line-height: 1.8; max-width: 380px; margin-bottom: 32px;
+    }
+    .hero-cta {
+      display: inline-block;
+      border: 1px solid var(--blue);
+      color: var(--blue);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+      padding: 13px 28px; text-decoration: none;
+      background: var(--blue-bg);
+      transition: background .15s;
+    }
+    .hero-cta:hover { background: rgba(37,99,235,0.12); }
+
+    /* ── App Mock ── */
+    .hero-right {
+      background: rgba(255,255,255,0.5);
+      backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 64px 40px; position: relative;
+    }
+    .mock-float {
+      position: absolute;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--dim);
+    }
+    .mock-float-tl { top: 72px; left: 28px; }
+    .mock-float-br { bottom: 72px; right: 28px; }
+    .app-mock {
+      width: 272px;
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.9) inset;
+    }
+    .mock-bar {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(255,255,255,0.6);
+    }
+    .mock-bar-title { font-family: 'VT323', monospace; font-size: 17px; color: var(--blue); }
+    .mock-bar-date  { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--dim); }
+    .mock-section   { border-bottom: 1px solid var(--border); padding: 14px; }
+    .mock-section:last-child { border-bottom: none; }
+    .mock-lbl { font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
+    .mock-score-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 8px; }
+    .mock-score-num { font-family: 'VT323', monospace; font-size: 68px; color: var(--blue); line-height: 1; }
+    .mock-score-label { font-family: 'VT323', monospace; font-size: 13px; color: var(--blue); margin-bottom: 8px; }
+    .mock-bar-track { height: 3px; background: var(--border); }
+    .mock-bar-fill  { height: 3px; background: var(--blue); }
+    .mock-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+    .mock-metric { padding: 8px; border-right: 1px solid var(--border); }
+    .mock-metric:last-child { border-right: none; }
+    .mock-metric-val  { font-family: 'VT323', monospace; font-size: 22px; color: var(--text); line-height: 1; }
+    .mock-metric-unit { font-size: 9px; color: var(--dim); margin-top: 2px; }
+    .mock-workout-row { display: flex; justify-content: space-between; align-items: center; }
+    .mock-workout-type { font-family: 'VT323', monospace; font-size: 17px; color: var(--text); }
+    .mock-workout-dur  { font-family: 'VT323', monospace; font-size: 20px; color: var(--blue); }
+
+    /* ── STATS STRIP ── */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid var(--border);
+      min-height: auto !important;
+    }
+    .stat-cell {
+      padding: 36px 32px;
+      border-right: 1px solid var(--border);
+    }
+    .stat-cell:last-child { border-right: none; }
+    .stat-num  {
+      font-family: 'VT323', monospace;
+      font-size: 52px; color: var(--text); line-height: 1; margin-bottom: 6px;
+    }
+    .stat-num.blue { color: var(--blue); }
+    .stat-desc { font-size: 12px; color: var(--dim); line-height: 1.6; }
+
+    /* ── WHAT SECTION ── */
+    .what-section {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+    .what-left {
+      border-right: 1px solid var(--border);
+      padding: 68px 40px 56px;
+    }
+    .what-right { padding: 68px 52px 56px; }
+    .section-num  { font-family: 'VT323', monospace; font-size: 72px; color: var(--muted); line-height: 1; margin-bottom: 12px; }
+    .section-head { font-family: 'VT323', monospace; font-size: 30px; color: var(--text); margin-bottom: 14px; }
+    .section-body { font-size: 13px; color: var(--dim); line-height: 1.8; }
+    .problem-list { display: flex; flex-direction: column; border: 1px solid var(--border); }
+    .problem-row {
+      display: grid; grid-template-columns: 48px 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+    .problem-row:last-child { border-bottom: none; }
+    .problem-n {
+      border-right: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'VT323', monospace; font-size: 18px; color: var(--muted);
+    }
+    .problem-text { padding: 16px 20px; font-size: 13px; color: var(--dim); line-height: 1.65; }
+    .problem-text strong { color: var(--text); font-weight: 500; }
+
+    /* ── HOW SECTION ── */
+    .how-section { border-bottom: 1px solid var(--border); }
+    .how-header {
+      display: grid; grid-template-columns: 300px 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+    .how-header-left { border-right: 1px solid var(--border); padding: 48px 40px; }
+    .how-header-right { padding: 48px 52px; display: flex; align-items: flex-end; }
+    .how-header-right p { font-size: 14px; color: var(--dim); line-height: 1.8; max-width: 480px; }
+    .how-header-right strong { color: var(--text); }
+    .flow-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+    }
+    .flow-col {
+      padding: 28px 24px;
+      border-right: 1px solid var(--border);
+    }
+    .flow-col:last-child { border-right: none; }
+    .flow-n    { font-family: 'VT323', monospace; font-size: 44px; color: var(--muted); line-height: 1; margin-bottom: 12px; }
+    .flow-head { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text); margin-bottom: 8px; }
+    .flow-body { font-size: 12px; color: var(--dim); line-height: 1.65; }
+    .flow-tag  { font-size: 10px; color: var(--blue); margin-top: 10px; }
+
+    /* ── RECOVERY SECTION ── */
+    .recovery-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--border);
+      min-height: 100vh;
+    }
+    .recovery-left {
+      background: var(--blue);
+      border-right: 1px solid rgba(255,255,255,0.15);
+      padding: 64px 52px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .recovery-lbl-inv { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 12px; }
+    .recovery-big   { font-family: 'VT323', monospace; font-size: clamp(80px,12vw,148px); color: #fff; line-height: 1; }
+    .recovery-status { font-family: 'VT323', monospace; font-size: 20px; color: #fff; letter-spacing: .08em; margin-top: 8px; }
+    .inv-bar-track  { height: 3px; background: rgba(255,255,255,0.18); margin: 16px 0; }
+    .inv-bar-fill   { height: 3px; background: #fff; width: 78%; }
+    .recovery-components { margin-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+    .rc-row { display: flex; align-items: center; gap: 12px; }
+    .rc-lbl { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,0.55); width: 44px; }
+    .rc-track { flex: 1; height: 2px; background: rgba(255,255,255,0.18); }
+    .rc-fill  { height: 2px; background: #fff; }
+    .rc-val   { font-family: 'VT323', monospace; font-size: 15px; color: rgba(255,255,255,0.75); width: 24px; text-align: right; }
+    .recovery-right { padding: 64px 52px; display: flex; flex-direction: column; justify-content: center; }
+    .recovery-right h2 { font-family: 'VT323', monospace; font-size: 34px; color: var(--text); margin-bottom: 18px; }
+    .recovery-formula {
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      padding: 18px 22px; margin-bottom: 22px;
+    }
+    .formula-line { font-size: 12px; color: var(--dim); line-height: 2; }
+    .formula-line span { color: var(--blue); }
+    .recovery-tiers { display: flex; flex-direction: column; border: 1px solid var(--border); }
+    .tier-row {
+      display: flex; align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .tier-row:last-child { border-bottom: none; }
+    .tier-score { font-family: 'VT323', monospace; font-size: 20px; padding: 12px 16px; width: 76px; border-right: 1px solid var(--border); }
+    .tier-label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; padding: 12px 16px; border-right: 1px solid var(--border); width: 88px; color: var(--dim); }
+    .tier-desc  { font-size: 12px; color: var(--dim); padding: 12px 16px; }
+
+    /* ── FEATURES SECTION ── */
+    .features-section { border-bottom: 1px solid var(--border); }
+    .features-header {
+      display: grid; grid-template-columns: 300px 1fr;
+      border-bottom: 1px solid var(--border);
+      padding: 48px 40px;
+    }
+    .features-header-left { border-right: 1px solid var(--border); padding-right: 40px; }
+    .features-header-right { padding-left: 52px; display: flex; align-items: center; }
+    .features-header-right p { font-size: 13px; color: var(--dim); line-height: 1.8; max-width: 520px; }
+    .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .feat-cell {
+      padding: 32px 28px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .feat-cell:nth-child(3n) { border-right: none; }
+    .feat-cell:nth-last-child(-n+3) { border-bottom: none; }
+    .feat-icon { font-family: 'VT323', monospace; font-size: 32px; color: var(--blue); line-height: 1; margin-bottom: 12px; }
+    .feat-head { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text); margin-bottom: 8px; }
+    .feat-body { font-size: 12px; color: var(--dim); line-height: 1.7; }
+
+    /* ── CHAT SECTION ── */
+    .chat-section {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+    .chat-left { border-right: 1px solid var(--border); padding: 56px 40px; }
+    .chat-right { padding: 56px 52px; }
+    .chat-ui {
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+    .chat-topbar {
+      border-bottom: 1px solid var(--border); padding: 11px 16px;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.5);
+    }
+    .chat-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
+    .chat-name { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+    .chat-msgs { padding: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+    .cmsg { display: flex; gap: 10px; max-width: 90%; }
+    .cmsg.u { align-self: flex-end; flex-direction: row-reverse; }
+    .cavatar { font-size: 10px; color: var(--dim); padding-top: 3px; flex-shrink: 0; width: 22px; }
+    .cbubble {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.72);
+      padding: 10px 13px; font-size: 13px;
+      color: var(--dim); line-height: 1.65;
+    }
+    .cmsg.u .cbubble {
+      background: var(--blue-bg);
+      border-color: rgba(37,99,235,0.15);
+      color: var(--text);
+    }
+    .cbubble .val { font-family: 'VT323', monospace; font-size: 17px; color: var(--blue); }
+    .chat-inputbar {
+      border-top: 1px solid var(--border); padding: 11px 16px;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.5);
+    }
+    .chat-prompt { font-size: 13px; color: var(--blue); }
+    .chat-hint   { font-size: 12px; color: var(--muted); }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      background: rgba(245,245,247,0.8);
+      backdrop-filter: blur(12px);
+    }
+    .footer-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 28px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .footer-logo { font-family: 'VT323', monospace; font-size: 20px; color: var(--text); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a {
+      font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--dim); text-decoration: none; transition: color .15s;
+    }
+    .footer-links a:hover { color: var(--text); }
+    .footer-meta { font-size: 11px; color: var(--dim); text-align: right; line-height: 1.7; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .hero, .recovery-section { grid-template-columns: 1fr; }
+      .hero-right { display: none; }
+      .what-section, .how-header, .chat-section { grid-template-columns: 1fr; }
+      .what-left, .how-header-left, .chat-left { border-right: none; border-bottom: 1px solid var(--border); }
+      .recovery-left { border-right: none; border-bottom: 1px solid var(--border); }
+      .flow-grid { grid-template-columns: 1fr 1fr; }
+      .feat-grid { grid-template-columns: 1fr 1fr; }
+      .stats-strip { grid-template-columns: 1fr 1fr; }
+      .stat-cell:nth-child(2n) { border-right: none; }
+      .features-header { grid-template-columns: 1fr; }
+      .features-header-left { border-right: none; border-bottom: 1px solid var(--border); padding-right: 0; }
+      .features-header-right { padding-left: 0; padding-top: 28px; }
+      .nav-center { display: none; }
+      .footer-inner { flex-direction: column; gap: 16px; text-align: center; }
+      .footer-links { flex-wrap: wrap; justify-content: center; }
+    }
+    @media (max-width: 560px) {
+      .hero-title { font-size: 80px; }
+      .feat-grid  { grid-template-columns: 1fr; }
+      .feat-cell  { border-right: none !important; }
+      section { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-blob bg-blob-1"></div>
+<div class="bg-blob bg-blob-2"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-wrap">
+    <a href="#" class="nav-logo">TRAINIQ</a>
+    <div class="nav-center">
+      <a href="#was">Das Problem</a>
+      <a href="#wie">Wie es funktioniert</a>
+      <a href="#recovery">Recovery</a>
+      <a href="#features">Features</a>
+      <a href="#coach">Coach</a>
+    </div>
+    <span class="nav-right mono">v1.0 · 2026</span>
+  </div>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section class="hero" id="hero" data-snap>
+  <div class="hero-left">
+    <div class="hero-eyebrow">
+      <span class="lbl">KI-Trainingscoach · Ausdauersport</span>
+    </div>
+    <div>
+      <div class="hero-title pixel">TRAIN<span>IQ</span></div>
+    </div>
+    <div class="hero-bottom">
+      <p class="hero-desc">
+        Ein KI-Agent analysiert täglich deine Körperdaten, wertet Ernährungsfotos aus
+        und erstellt automatisch einen personalisierten Trainingsplan —
+        so ehrlich wie ein Spitzensportcoach.
+      </p>
+      <a href="#wie" class="hero-cta">Wie es funktioniert ─→</a>
+    </div>
+  </div>
+
+  <!-- App Mockup -->
+  <div class="hero-right">
+    <span class="mock-float mock-float-tl lbl">Recovery Dashboard</span>
+    <div class="app-mock">
+      <div class="mock-bar">
+        <span class="mock-bar-title pixel">TRAINIQ</span>
+        <span class="mock-bar-date mono">SA 28. MRZ</span>
+      </div>
+      <div class="mock-section">
+        <div class="mock-lbl">Erholung Heute</div>
+        <div class="mock-score-row">
+          <span class="mock-score-num pixel">78</span>
+          <div>
+            <div class="lbl" style="font-size:9px">von 100</div>
+            <div class="mock-score-label pixel">● BEREIT</div>
+          </div>
+        </div>
+        <div class="mock-bar-track"><div class="mock-bar-fill" style="width:78%"></div></div>
+      </div>
+      <div class="mock-section">
+        <div class="mock-lbl">Körperdaten</div>
+        <div class="mock-metrics">
+          <div class="mock-metric">
+            <div class="mock-metric-val pixel">42</div>
+            <div class="mock-metric-unit">HRV ms</div>
+          </div>
+          <div class="mock-metric">
+            <div class="mock-metric-val pixel">7.2</div>
+            <div class="mock-metric-unit">Schlaf h</div>
+          </div>
+          <div class="mock-metric">
+            <div class="mock-metric-val pixel">58</div>
+            <div class="mock-metric-unit">Resting HR</div>
+          </div>
+        </div>
+      </div>
+      <div class="mock-section">
+        <div class="mock-lbl">Heutiges Training</div>
+        <div class="mock-workout-row">
+          <span class="mock-workout-type pixel">Laufen Z2</span>
+          <span class="mock-workout-dur pixel">45min</span>
+        </div>
+      </div>
+    </div>
+    <span class="mock-float mock-float-br lbl">Live-Daten</span>
+  </div>
+</section>
+
+<!-- ─── STATS STRIP ─── -->
+<section class="stats-strip" id="stats" style="min-height:auto; scroll-snap-align:none;">
+  <div class="stat-cell">
+    <div class="stat-num pixel blue">7</div>
+    <div class="stat-desc">Tage Metriken-Verlauf —<br>HRV, Schlaf, Stresslevel</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-num pixel">42ms</div>
+    <div class="stat-desc">Durchschnittliche HRV —<br>Herzratenvariabilität</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-num pixel blue">78</div>
+    <div class="stat-desc">Recovery Score heute —<br>0–100 Skala</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-num pixel">100%</div>
+    <div class="stat-desc">Datenbasiert —<br>keine generischen Pläne</div>
+  </div>
+</section>
+
+<!-- ─── WHAT SECTION ─── -->
+<section class="what-section" id="was" data-snap>
+  <div class="what-left">
+    <div class="section-num pixel">01</div>
+    <div class="section-head pixel">Das Problem</div>
+    <p class="section-body">
+      Generische Trainingspläne ignorieren wie du dich wirklich fühlst.
+      Sie kennen weder deine HRV noch deinen Schlaf — und trotzdem bestimmen sie dein Training.
+    </p>
+  </div>
+  <div class="what-right">
+    <div class="problem-list">
+      <div class="problem-row">
+        <div class="problem-n pixel">1</div>
+        <div class="problem-text"><strong>Übertraining ohne Warnung</strong> — du trainierst hart, obwohl dein Körper Erholung signalisiert. HRV und Schlaf werden ignoriert.</div>
+      </div>
+      <div class="problem-row">
+        <div class="problem-n pixel">2</div>
+        <div class="problem-text"><strong>Starre Pläne statt Anpassung</strong> — ein Plan passt sich nicht an schlechte Nächte, Stress oder Krankheit an. Du machst es trotzdem.</div>
+      </div>
+      <div class="problem-row">
+        <div class="problem-n pixel">3</div>
+        <div class="problem-text"><strong>Kein Kontext beim Coach</strong> — du beschreibst deinem Coach die Lage von vorne. Er kennt weder deine Werte noch deine History.</div>
+      </div>
+      <div class="problem-row">
+        <div class="problem-n pixel">4</div>
+        <div class="problem-text"><strong>Ernährung auf Schätzung</strong> — du loggst Mahlzeiten manuell oder gar nicht. Der Zusammenhang zu Leistung bleibt unsichtbar.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── HOW SECTION ─── -->
+<section class="how-section" id="wie" data-snap>
+  <div class="how-header">
+    <div class="how-header-left">
+      <div class="section-num pixel">02</div>
+      <div class="section-head pixel">Wie es funktioniert</div>
+    </div>
+    <div class="how-header-right">
+      <p>TrainIQ liest täglich deine Körperdaten, berechnet einen Recovery Score und passt deinen Trainingsplan <strong>automatisch und in Echtzeit</strong> an.</p>
+    </div>
+  </div>
+  <div class="flow-grid">
+    <div class="flow-col">
+      <div class="flow-n pixel">01</div>
+      <div class="flow-head">Uhr verbinden</div>
+      <p class="flow-body">Verbinde Apple Watch, Garmin oder Strava. Daten fließen automatisch täglich ein.</p>
+      <div class="flow-tag mono">→ /watch/sync</div>
+    </div>
+    <div class="flow-col">
+      <div class="flow-n pixel">02</div>
+      <div class="flow-head">Metriken erfassen</div>
+      <p class="flow-body">HRV, Ruhepuls, Schlafdauer, Schlafqualität und Stresslevel werden täglich ausgelesen.</p>
+      <div class="flow-tag mono">→ /metrics</div>
+    </div>
+    <div class="flow-col">
+      <div class="flow-n pixel">03</div>
+      <div class="flow-head">Recovery berechnen</div>
+      <p class="flow-body">Ein gewichteter Algorithmus (HRV 35%, Schlaf 25%, Stress 20%, HR 20%) ergibt deinen Score 0–100.</p>
+      <div class="flow-tag mono">→ Score-Algorithmus</div>
+    </div>
+    <div class="flow-col">
+      <div class="flow-n pixel">04</div>
+      <div class="flow-head">Plan anpassen</div>
+      <p class="flow-body">Gemini Flash generiert täglich deinen Wochenplan — abgestimmt auf Recovery, Ziele und Verlauf.</p>
+      <div class="flow-tag mono">→ KI-Planer</div>
+    </div>
+    <div class="flow-col">
+      <div class="flow-n pixel">05</div>
+      <div class="flow-head">Coach fragen</div>
+      <p class="flow-body">Dein KI-Coach kennt alle Daten. Stell Fragen, lass Pläne anpassen oder besprich deine Ziele.</p>
+      <div class="flow-tag mono">→ /coach/chat</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── RECOVERY SECTION ─── -->
+<section class="recovery-section" id="recovery" data-snap>
+  <div class="recovery-left">
+    <div class="recovery-lbl-inv lbl">Recovery Score Heute</div>
+    <div class="recovery-big pixel">78</div>
+    <div class="recovery-status pixel">● BEREIT ZUM TRAINING</div>
+    <div class="inv-bar-track"><div class="inv-bar-fill"></div></div>
+    <div class="recovery-components">
+      <div class="rc-row">
+        <span class="rc-lbl lbl">HRV</span>
+        <div class="rc-track"><div class="rc-fill" style="width:82%"></div></div>
+        <span class="rc-val pixel">82</span>
+      </div>
+      <div class="rc-row">
+        <span class="rc-lbl lbl">Schlaf</span>
+        <div class="rc-track"><div class="rc-fill" style="width:75%"></div></div>
+        <span class="rc-val pixel">75</span>
+      </div>
+      <div class="rc-row">
+        <span class="rc-lbl lbl">Stress</span>
+        <div class="rc-track"><div class="rc-fill" style="width:68%"></div></div>
+        <span class="rc-val pixel">68</span>
+      </div>
+      <div class="rc-row">
+        <span class="rc-lbl lbl">HR</span>
+        <div class="rc-track"><div class="rc-fill" style="width:79%"></div></div>
+        <span class="rc-val pixel">79</span>
+      </div>
+    </div>
+  </div>
+  <div class="recovery-right">
+    <h2 class="pixel">Score-Algorithmus</h2>
+    <div class="recovery-formula mono">
+      <div class="formula-line">score = <span>HRV_norm</span> × 0.35</div>
+      <div class="formula-line">      + <span>sleep_norm</span> × 0.25</div>
+      <div class="formula-line">      + <span>stress_norm</span> × 0.20</div>
+      <div class="formula-line">      + <span>hr_norm</span> × 0.20</div>
+    </div>
+    <div class="recovery-tiers">
+      <div class="tier-row">
+        <span class="tier-score pixel" style="color:var(--blue)">80–100</span>
+        <span class="tier-label lbl">Optimal</span>
+        <span class="tier-desc">Intensives Training möglich</span>
+      </div>
+      <div class="tier-row">
+        <span class="tier-score pixel" style="color:var(--blue)">60–79</span>
+        <span class="tier-label lbl">Bereit</span>
+        <span class="tier-desc">Normal nach Plan trainieren</span>
+      </div>
+      <div class="tier-row">
+        <span class="tier-score pixel" style="color:var(--muted)">40–59</span>
+        <span class="tier-label lbl">Leicht</span>
+        <span class="tier-desc">Nur Zone 1–2, kürzer</span>
+      </div>
+      <div class="tier-row">
+        <span class="tier-score pixel" style="color:var(--dim)">0–39</span>
+        <span class="tier-label lbl">Kritisch</span>
+        <span class="tier-desc">Ruhetag — Erholung priorisieren</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FEATURES SECTION ─── -->
+<section class="features-section" id="features" data-snap>
+  <div class="features-header">
+    <div class="features-header-left">
+      <div class="section-num pixel">03</div>
+      <div class="section-head pixel">Features</div>
+    </div>
+    <div class="features-header-right">
+      <p>Alles was ein Ausdauersportler braucht — von der täglichen Metrik-Analyse bis zum KI-Coach, der wirklich antwortet.</p>
+    </div>
+  </div>
+  <div class="feat-grid">
+    <div class="feat-cell">
+      <div class="feat-icon pixel">HRV</div>
+      <div class="feat-head">Recovery Score</div>
+      <p class="feat-body">Täglicher 0–100 Score aus HRV, Schlaf, Stress und Ruhepuls. Automatisch nach Uhr-Sync berechnet.</p>
+    </div>
+    <div class="feat-cell">
+      <div class="feat-icon pixel">PLN</div>
+      <div class="feat-head">KI-Trainingsplan</div>
+      <p class="feat-body">Gemini Flash generiert wöchentlich deinen Plan — abgestimmt auf Recovery, Ziele und Trainingshistorie.</p>
+    </div>
+    <div class="feat-cell">
+      <div class="feat-icon pixel">EAT</div>
+      <div class="feat-head">Ernährung per Foto</div>
+      <p class="feat-body">Fotografiere deine Mahlzeit. Die KI erkennt Kalorien, Protein, Carbs und Fett automatisch per Vision-API.</p>
+    </div>
+    <div class="feat-cell">
+      <div class="feat-icon pixel">AI</div>
+      <div class="feat-head">KI Coach Chat</div>
+      <p class="feat-body">Dein Coach kennt bereits deine aktuellen Werte, den Trainingsplan und deine Ziele — bevor du fragst.</p>
+    </div>
+    <div class="feat-cell">
+      <div class="feat-icon pixel">SYN</div>
+      <div class="feat-head">Uhr-Synchronisation</div>
+      <p class="feat-body">Strava, Apple Watch und Garmin — Aktivitäten landen automatisch in der Auswertung und im Plan.</p>
+    </div>
+    <div class="feat-cell">
+      <div class="feat-icon pixel">ZIL</div>
+      <div class="feat-head">Zielgesteuert</div>
+      <p class="feat-body">Halbmarathon, Triathlon, Radrennen — TrainIQ plant rückwärts von deinem Zieldatum und Fitnesslevel.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CHAT SECTION ─── -->
+<section class="chat-section" id="coach" data-snap>
+  <div class="chat-left">
+    <div class="section-num pixel">04</div>
+    <div class="section-head pixel">KI Coach</div>
+    <p class="section-body">
+      Kein generisches Chatbot. Der Coach kennt deine heutigen Körperdaten, deinen aktuellen Plan
+      und deine Ziele — und antwortet in Echtzeit per Streaming.
+    </p>
+  </div>
+  <div class="chat-right">
+    <div class="chat-ui">
+      <div class="chat-topbar">
+        <div class="chat-dot"></div>
+        <span class="chat-name lbl">TrainIQ Coach · Gemini Flash · Live</span>
+      </div>
+      <div class="chat-msgs">
+        <div class="cmsg u">
+          <span class="cavatar mono">Du</span>
+          <div class="cbubble">Kann ich heute intensiv trainieren?</div>
+        </div>
+        <div class="cmsg">
+          <span class="cavatar mono">AI</span>
+          <div class="cbubble">
+            Deine HRV liegt heute bei <span class="val">42ms</span> — <span class="val">8%</span> über deinem 7-Tage-Schnitt.
+            Schlaf war <span class="val">7.2h</span> mit guter Qualität. Recovery Score <span class="val">78/100</span>.
+            Du bist bereit — ich empfehle das geplante Zone-3 Intervall heute durchzuziehen.
+          </div>
+        </div>
+        <div class="cmsg u">
+          <span class="cavatar mono">Du</span>
+          <div class="cbubble">Setze morgen einen Ruhetag — ich habe einen langen Reisetag.</div>
+        </div>
+        <div class="cmsg">
+          <span class="cavatar mono">AI</span>
+          <div class="cbubble">
+            Verstanden. Ich passe Donnerstag auf Ruhetag an und verschiebe das <span class="val">60min</span>-Laufen auf Freitag. Plan wurde aktualisiert.
+          </div>
+        </div>
+      </div>
+      <div class="chat-inputbar">
+        <span class="chat-prompt mono">›</span>
+        <span class="chat-hint">Frag deinen Coach…</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div class="footer-inner">
+    <span class="footer-logo pixel">TRAINIQ</span>
+    <div class="footer-links">
+      <a href="#was">Das Problem</a>
+      <a href="#wie">Wie es funktioniert</a>
+      <a href="#recovery">Recovery</a>
+      <a href="#features">Features</a>
+      <a href="#coach">Coach</a>
+    </div>
+    <div class="footer-meta mono">
+      <div>KI-Trainingscoach · Ausdauersport</div>
+      <div>v1.0 · 2026</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Gravity Scroll — jeder Scroll springt zur nächsten Section
+  const snapSections = Array.from(document.querySelectorAll('section[data-snap]'));
+  let locked = false;
+  let touchStartY = 0;
+  const NAV_H = 52;
+
+  function getCurrentIndex() {
+    return snapSections.findIndex(s => {
+      const r = s.getBoundingClientRect();
+      return r.top <= 60 && r.bottom > 60;
+    });
+  }
+
+  function goTo(index) {
+    const target = snapSections[Math.max(0, Math.min(snapSections.length - 1, index))];
+    if (!target) return;
+    locked = true;
+    const top = target.getBoundingClientRect().top + window.scrollY - NAV_H;
+    window.scrollTo({ top, behavior: 'smooth' });
+    setTimeout(() => { locked = false; }, 950);
+  }
+
+  window.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (locked) return;
+    if (Math.abs(e.deltaY) < 10) return;
+    goTo(getCurrentIndex() + (e.deltaY > 0 ? 1 : -1));
+  }, { passive: false });
+
+  window.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  window.addEventListener('touchend', (e) => {
+    if (locked) return;
+    const delta = touchStartY - e.changedTouches[0].clientY;
+    if (Math.abs(delta) < 30) return;
+    goTo(getCurrentIndex() + (delta > 0 ? 1 : -1));
+  }, { passive: true });
+
+  window.addEventListener('keydown', (e) => {
+    if (locked) return;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); goTo(getCurrentIndex() + 1); }
+    if (e.key === 'ArrowUp'   || e.key === 'PageUp')   { e.preventDefault(); goTo(getCurrentIndex() - 1); }
+  });
+
+  // Nav active state
+  const navLinks = document.querySelectorAll('.nav-center a[href^="#"]');
+  const sections = document.querySelectorAll('section[id]');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => { if (s.getBoundingClientRect().top <= 80) current = s.id; });
+    navLinks.forEach(a => {
+      a.style.color = a.getAttribute('href') === '#' + current ? 'var(--text)' : '';
+    });
+  }, { passive: true });
+</script>
+</body>
+</html>
